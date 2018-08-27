@@ -1,0 +1,88 @@
+#taken from 
+#https://askubuntu.com/questions/806820/how-do-i-create-a-completely-unattended-install-of-ubuntu-desktop-16-04-1-lts 
+#https://people.canonical.com/~mtrudel/preseed/crypto.cfg
+#
+
+### Partitioning
+#(you need to change passpharse)
+d-i partman-crypto/passphrase string clear_text_password
+d-i partman-crypto/passphrase-again string clear_text_password
+d-i partman-lvm/confirm boolean true
+d-i partman-auto-lvm/guided_size string max
+d-i partman-auto/method string crypto
+d-i partman-lvm/device_remove_lvm boolean true
+d-i partman-md/device_remove_md boolean true
+d-i partman-auto/choose_recipe select boot-crypto
+d-i partman-auto-lvm/new_vg_name string crypt
+d-i partman-partitioning/confirm_write_new_label boolean true
+d-i partman/choose_partition select finish
+d-i partman/confirm boolean true
+d-i partman/confirm_nooverwrite boolean true
+
+# Locale
+d-i debian-installer/locale string en_US.UTF-8
+d-i console-setup/ask_detect boolean false
+d-i console-setup/layoutcode string us
+
+# Network
+d-i netcfg/get_hostname string kovral
+d-i netcfg/get_domain string unassigned-domain
+d-i netcfg/choose_interface select auto
+# If non-free firmware is needed for the network or other hardware, you can
+# configure the installer to always try to load it, without prompting. Or
+# change to false to disable asking.
+d-i hw-detect/load_firmware boolean true
+
+# Clock
+d-i clock-setup/utc-auto boolean true
+d-i clock-setup/utc boolean true
+d-i time/zone string Europe/Prague
+d-i clock-setup/ntp boolean true
+
+# Packages, Mirrors, Image
+# Set for Czech
+d-i base-installer/kernel/override-image string linux-server
+d-i base-installer/kernel/override-image string linux-image-amd64
+d-i mirror/country string CZ
+d-i mirror/http/proxy string
+d-i mirror/http/directory string /ubuntu
+d-i apt-setup/restricted boolean true
+d-i apt-setup/universe boolean true
+d-i apt-setup/archive boolean true
+
+d-i pkgsel/install-language-support boolean false
+tasksel tasksel/first multiselect ubuntu-desktop
+
+# Users - default (user will create his own account and delete default)
+d-i passwd/user-fullname string default
+d-i passwd/username string default
+#make password via mkpassword command in linux
+d-i passwd/user-password-crypted password 8FaKx5T9Ljsrs
+#no root
+d-i passwd/root-login boolean false
+#d-i passwd/root-password-crypted password [crypt 3]
+d-i user-setup/allow-password-weak boolean false
+
+# Grub
+d-i grub-installer/grub2_instead_of_grub_legacy boolean false
+d-i grub-installer/only_debian boolean true
+# Custom Commands
+# This command is run just before the install finishes, but when there is
+# still a usable /target directory. You can chroot to /target and use it
+# directly, or use the apt-install and in-target commands to easily install
+# packages and run commands in the target system.
+
+ubiquity ubiquity/success_command string \
+in-target mkdir /var/log/something ; \
+in-target apt-get clean ; \
+in-target apt-get update ; \
+in-target apt-get install -y libstdc++5:i386 libpam0g:i386 libx11-6:i386 net-tools clamav iptables || echo "APT installation failed" > /var/log/something/apt_install.log ; \
+cp -r /cdrom/my_scripts/ /target/var/my_scripts ; \
+chroot /target bash -c "/var/my_scripts/snx_800004013.sh 2>&1 > /var/log/something/snx.log" ; \
+chroot /target rm -rf /var/something ; \
+true
+
+# restart after installation
+d-i finish-install/reboot_in_progress note
+
+
